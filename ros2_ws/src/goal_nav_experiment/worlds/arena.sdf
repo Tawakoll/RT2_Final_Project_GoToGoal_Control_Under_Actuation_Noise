@@ -1,0 +1,250 @@
+<?xml version="1.0" ?>
+<!--
+  Arena world for visualizing goal_nav_experiment trials in Gazebo Sim.
+
+  The 11 x 11 m arena mirrors the kinematic simulator's constants
+  (ARENA_MIN/ARENA_MAX in simulator.py). The robot and goal models are
+  purely visual: the robot has no collisions and gravity disabled, because
+  its pose is driven externally by the gazebo_viz replay script through the
+  /world/arena/set_pose service (UserCommands system).
+
+  Run with:  gz sim -r arena.sdf
+-->
+<sdf version="1.10">
+  <world name="arena">
+    <physics name="default_physics" type="dartsim">
+      <max_step_size>0.01</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system"
+            name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system"
+            name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster"/>
+
+    <scene>
+      <ambient>0.9 0.9 0.9 1</ambient>
+      <background>0.35 0.45 0.55 1</background>
+      <grid>false</grid>
+    </scene>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>5.5 5.5 12 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.3 0.2 -0.9</direction>
+    </light>
+
+    <!-- arena floor -->
+    <model name="floor">
+      <static>true</static>
+      <pose>5.5 5.5 0 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <box><size>11 11 0.05</size></box>
+          </geometry>
+          <material>
+            <ambient>0.85 0.85 0.88 1</ambient>
+            <diffuse>0.85 0.85 0.88 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry>
+            <box><size>11 11 0.05</size></box>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <!-- arena walls -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>5.5 11.1 0.15 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>11.4 0.2 0.35</size></box></geometry>
+          <material>
+            <ambient>0.45 0.5 0.58 1</ambient>
+            <diffuse>0.45 0.5 0.58 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_south">
+      <static>true</static>
+      <pose>5.5 -0.1 0.15 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>11.4 0.2 0.35</size></box></geometry>
+          <material>
+            <ambient>0.45 0.5 0.58 1</ambient>
+            <diffuse>0.45 0.5 0.58 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_east">
+      <static>true</static>
+      <pose>11.1 5.5 0.15 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.2 11.4 0.35</size></box></geometry>
+          <material>
+            <ambient>0.45 0.5 0.58 1</ambient>
+            <diffuse>0.45 0.5 0.58 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-0.1 5.5 0.15 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.2 11.4 0.35</size></box></geometry>
+          <material>
+            <ambient>0.45 0.5 0.58 1</ambient>
+            <diffuse>0.45 0.5 0.58 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- goal marker: green disc, radius = GOAL_TOL from simulator.py -->
+    <model name="goal">
+      <static>true</static>
+      <pose>8 8 0.03 0 0 0</pose>
+      <link name="link">
+        <visual name="disc">
+          <geometry><cylinder><radius>0.15</radius><length>0.02</length></cylinder></geometry>
+          <material>
+            <ambient>0.1 0.8 0.2 1</ambient>
+            <diffuse>0.1 0.8 0.2 1</diffuse>
+            <emissive>0.05 0.4 0.1 1</emissive>
+          </material>
+        </visual>
+        <visual name="pole">
+          <pose>0 0 0.45 0 0 0</pose>
+          <geometry><cylinder><radius>0.02</radius><length>0.9</length></cylinder></geometry>
+          <material>
+            <ambient>0.1 0.8 0.2 1</ambient>
+            <diffuse>0.1 0.8 0.2 1</diffuse>
+          </material>
+        </visual>
+        <visual name="flag">
+          <pose>0.12 0 0.8 0 0 0</pose>
+          <geometry><box><size>0.24 0.01 0.16</size></box></geometry>
+          <material>
+            <ambient>0.1 0.8 0.2 1</ambient>
+            <diffuse>0.1 0.8 0.2 1</diffuse>
+            <emissive>0.05 0.4 0.1 1</emissive>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- robot: visual-only unicycle, pose driven via /world/arena/set_pose -->
+    <model name="robot">
+      <pose>5.5 5.5 0.09 0 0 0</pose>
+      <link name="chassis">
+        <gravity>false</gravity>
+        <visual name="body">
+          <geometry><cylinder><radius>0.18</radius><length>0.12</length></cylinder></geometry>
+          <material>
+            <ambient>0.12 0.35 0.75 1</ambient>
+            <diffuse>0.12 0.35 0.75 1</diffuse>
+          </material>
+        </visual>
+        <visual name="nose">
+          <pose>0.16 0 0.075 0 0 0</pose>
+          <geometry><box><size>0.14 0.05 0.04</size></box></geometry>
+          <material>
+            <ambient>0.95 0.95 0.95 1</ambient>
+            <diffuse>0.95 0.95 0.95 1</diffuse>
+            <emissive>0.3 0.3 0.3 1</emissive>
+          </material>
+        </visual>
+        <visual name="dome">
+          <pose>0 0 0.08 0 0 0</pose>
+          <geometry><sphere><radius>0.07</radius></sphere></geometry>
+          <material>
+            <ambient>0.9 0.55 0.1 1</ambient>
+            <diffuse>0.9 0.55 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <gui fullscreen="0">
+      <plugin filename="MinimalScene" name="3D View">
+        <gz-gui>
+          <title>3D View</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="string" key="state">docked</property>
+        </gz-gui>
+        <engine>ogre2</engine>
+        <scene>scene</scene>
+        <ambient_light>0.6 0.6 0.6</ambient_light>
+        <background_color>0.35 0.45 0.55</background_color>
+        <camera_pose>5.5 -4.5 12 0 0.85 1.5708</camera_pose>
+      </plugin>
+      <plugin filename="GzSceneManager" name="Scene Manager">
+        <gz-gui>
+          <property key="state" type="string">floating</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="InteractiveViewControl" name="Interactive view control">
+        <gz-gui>
+          <property key="state" type="string">floating</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="WorldControl" name="World control">
+        <gz-gui>
+          <title>World control</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">72</property>
+          <property type="double" key="width">121</property>
+          <property type="double" key="z">1</property>
+          <property type="string" key="state">standalone</property>
+          <anchors target="3D View">
+            <line own="left" target="left"/>
+            <line own="bottom" target="bottom"/>
+          </anchors>
+        </gz-gui>
+        <play_pause>true</play_pause>
+        <step>true</step>
+        <start_paused>false</start_paused>
+      </plugin>
+      <plugin filename="WorldStats" name="World stats">
+        <gz-gui>
+          <title>World stats</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">110</property>
+          <property type="double" key="width">290</property>
+          <property type="double" key="z">1</property>
+          <property type="string" key="state">standalone</property>
+          <anchors target="3D View">
+            <line own="right" target="right"/>
+            <line own="bottom" target="bottom"/>
+          </anchors>
+        </gz-gui>
+        <sim_time>true</sim_time>
+        <real_time>true</real_time>
+        <real_time_factor>true</real_time_factor>
+        <iterations>true</iterations>
+      </plugin>
+    </gui>
+  </world>
+</sdf>

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+.ipynb_checkpoints/
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
