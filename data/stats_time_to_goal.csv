@@ -1,0 +1,4 @@
+noise_std,n_pairs,mean_prop,mean_rott,mean_diff,t,p_ttest,p_wilcoxon,cohen_d,significant
+0.0,25,3.666,5.404,-1.738,-20.3618,0.0,0.0,-4.0724,True
+0.1,25,3.692,5.386,-1.694,-20.1358,0.0,0.0,-4.0272,True
+0.3,25,3.518,5.342,-1.824,-16.5187,0.0,0.0,-3.3037,True
