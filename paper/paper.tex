@@ -164,12 +164,110 @@ increasing \emph{actuation} noise, with paired randomized trials and public
 code. This paper fills that small but well-defined gap, and does so with a
 fully reproducible ROS~2 + notebook pipeline.
 
-
 \section{Methodological Proposal}
-% TODO: robot and noise model, controllers, software architecture
+\subsection{Robot and noise model}
+The robot is modelled as a kinematic unicycle with state $(x,y,\theta)$ and
+inputs $(v,\omega)$, integrated with explicit Euler at $\Delta t=0.05$\,s:
+\begin{equation}
+x^+ = x + v\cos\theta\,\Delta t,\quad
+y^+ = y + v\sin\theta\,\Delta t,\quad
+\theta^+ = \theta + \omega\,\Delta t .
+\end{equation}
+Actuation imperfection is modelled as additive zero-mean Gaussian noise on the
+\emph{executed} velocities at every step:
+\begin{equation}
+v = v_{\mathrm{cmd}} + \mathcal{N}(0,\sigma\,V_{\max}),\qquad
+\omega = \omega_{\mathrm{cmd}} + \mathcal{N}(0,\sigma\,W_{\max}),
+\end{equation}
+where $\sigma\in\{0.0,\,0.1,\,0.3\}$ is the dimensionless noise level and
+$V_{\max}=2$\,m/s, $W_{\max}=2$\,rad/s are the saturation limits. Executed
+linear velocities are clipped at zero (no reverse motion).
+
+\subsection{Controllers}
+Both controllers observe the goal through its polar coordinates in the robot
+frame: the distance $\rho=\|(x_g-x,\,y_g-y)\|$ and the bearing error
+$\alpha=\operatorname{atan2}(y_g-y,\,x_g-x)-\theta$, wrapped to
+$(-\pi,\pi]$. The \textbf{proportional closed-loop controller} (proposed) is
+the classical polar law \cite{aicardi1995closed} with a cosine gating that
+slows the robot down when badly oriented:
+\begin{equation}
+v = k_\rho\,\rho\,\max(\cos\alpha,0),\qquad
+\omega = k_\alpha\,\alpha ,
+\end{equation}
+with $k_\rho=1.2$, $k_\alpha=3.0$. The gating term preserves the convergence
+properties of the original law while preventing the robot from driving
+forward when the goal is behind it. The \textbf{rotate-then-translate
+baseline} implements the decomposed strategy as a two-state machine: it
+rotates in place at $\omega=\pm1.5$\,rad/s while $|\alpha|>0.2$\,rad, and
+otherwise translates at a constant $v=1$\,m/s with $\omega=0$; whenever noise
+pushes the heading error back above the threshold, it stops and re-aligns.
+Both outputs are saturated to $[0,V_{\max}]$ and $[-W_{\max},W_{\max}]$. The
+gains were fixed once, by hand, so that both controllers use comparable
+fractions of the available velocity envelope; neither was tuned per
+condition, which keeps the comparison fair but is acknowledged as a
+limitation in Sec.~VI.
+
+\subsection{Software architecture}
+The experiment is implemented as a ROS~2 (Jazzy) Python package,
+\texttt{goal\_nav\_experiment}\footnote{Code, executed notebook, and data:
+\url{https://github.com/Tawakoll/RT2_Final_Project}}. A dedicated
+\emph{experiment node} receives JSON trial requests on the topic
+\texttt{/experiment/run} (controller name, noise level, seed), simulates the
+trial, publishes the resulting metrics on \texttt{/experiment/result}, and
+appends every trial to a CSV log. A Jupyter notebook acts as the ROS~2 client:
+it launches the node, requests single interactive trials through
+\texttt{ipywidgets} controls, runs the full experimental campaign, and
+produces all statistics and figures reported here. Because every trial is
+driven by a seeded random generator, the entire study is exactly
+reproducible \cite{kluyver2016jupyter}.
+
+The simulated experiment makes the following explicit assumptions: (i) purely
+kinematic motion (no inertia, slip, or actuator dynamics beyond the noise
+term); (ii) perfect localization (the controllers read the true pose);
+(iii) an obstacle-free $11\times11$\,m arena; (iv) noise that is additive,
+Gaussian, zero-mean, and white. These assumptions isolate the independent
+variable of interest --- the control strategy --- from confounding factors.
 
 \section{Experiment Design}
-% TODO: variables, protocol, statistical analysis
+\subsection{Variables}
+\textbf{Independent variables}: controller type (proportional,
+rotate-then-translate) and actuation noise level
+($\sigma\in\{0.0,0.1,0.3\}$), in a $2\times3$ full factorial design.
+\textbf{Dependent variables}: time-to-goal [s]; path length [m]; path
+efficiency, defined as the ratio between the distance actually covered
+towards the goal and the travelled path length (1 = straight line); success
+rate (goal reached within the timeout). \textbf{Control variables}: arena
+size, start pose $(5.5,5.5,0)$, velocity limits, integration step, goal
+tolerance ($0.15$\,m), timeout ($60$\,s), controller gains, and the goal
+distribution (uniform in $[1,10]^2$, at least $3$\,m from the start).
+
+\subsection{Protocol}
+For every condition, $N=25$ trials are executed. The same 25 seeds are reused
+across all six conditions, so that both controllers face \emph{exactly} the
+same sequence of goals under the same noise realization schedule: the design
+is fully \emph{paired}, which increases statistical power and justifies the
+use of the paired $t$-test. The number of trials was chosen after a small
+pilot (5 runs per condition) showed low variability and a very large effect
+size for time-to-goal. In total, $2\times3\times25=150$ trials are executed
+automatically by the notebook in a few seconds of wall-clock time.
+
+Confounding factors are handled as follows. Environmental variability is
+eliminated by construction (the arena is fixed and empty); goal-position
+variability, which strongly affects all metrics, is neutralized by the paired
+seeding; the stochastic noise realization is the only residual source of
+within-pair variability, and it is averaged out by the repeated trials.
+Because the simulation is deterministic given the seed, re-running the
+campaign reproduces the dataset bit for bit --- failures, if any, are included
+in the analysis rather than discarded.
+
+\subsection{Statistical analysis}
+For each metric and noise level, the two controllers are compared with a
+two-tailed paired $t$-test at significance level $\alpha=0.05$; the Wilcoxon
+signed-rank test is used as a non-parametric robustness check, and Cohen's
+$d$ on the paired differences quantifies the effect size. H3 is tested by
+comparing the paired time-to-goal differences at $\sigma=0.3$ against those
+at $\sigma=0.0$ with a Welch two-sample $t$-test.
+
 
 \section{Results and Visualization}
 % TODO: aggregate metrics, hypothesis tests, qualitative evaluation
