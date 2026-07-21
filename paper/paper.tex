@@ -268,14 +268,208 @@ $d$ on the paired differences quantifies the effect size. H3 is tested by
 comparing the paired time-to-goal differences at $\sigma=0.3$ against those
 at $\sigma=0.0$ with a Welch two-sample $t$-test.
 
-
 \section{Results and Visualization}
-% TODO: aggregate metrics, hypothesis tests, qualitative evaluation
+\subsection{Aggregate metrics}
+All $150$ trials succeeded, so the success rate saturates at $100\%$ in every
+condition and is not analysed further. Table~\ref{tab:summary} reports the
+mean and standard deviation of the two main metrics.
+
+\begin{table}[t]
+\caption{Aggregate results (mean $\pm$ std over $N=25$ trials).}
+\label{tab:summary}
+\centering
+\begin{tabular}{@{}llcc@{}}
+\toprule
+$\sigma$ & Controller & Time-to-goal [s] & Path efficiency\\
+\midrule
+0.0 & Proportional        & $3.67\pm0.50$ & $0.927\pm0.046$\\
+0.0 & Rotate-translate    & $5.40\pm0.89$ & $0.987\pm0.002$\\
+0.1 & Proportional        & $3.69\pm0.57$ & $0.922\pm0.052$\\
+0.1 & Rotate-translate    & $5.39\pm0.92$ & $0.975\pm0.018$\\
+0.3 & Proportional        & $3.52\pm0.57$ & $0.910\pm0.066$\\
+0.3 & Rotate-translate    & $5.34\pm1.02$ & $0.956\pm0.049$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{box_time.png}
+\caption{Distribution of the time-to-goal for the two controllers at the
+three noise levels (box plots over $N=25$ trials).}
+\label{fig:box}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{lines_vs_noise.png}
+\caption{Mean $\pm$ std of time-to-goal (left) and path efficiency (right) as
+a function of the actuation noise level.}
+\label{fig:lines}
+\end{figure}
+
+Fig.~\ref{fig:box} shows the time-to-goal distributions: the proportional
+controller is not only faster on average ($\approx\!1.7$--$1.8$\,s, i.e.\
+about $32\%$) but also less dispersed. Fig.~\ref{fig:lines} summarizes both
+metrics as a function of noise: time-to-goal is remarkably flat for both
+controllers, while path efficiency exhibits the crossing pattern predicted by
+H2 --- the baseline starts near the ideal value $0.99$ and loses $0.031$ as
+$\sigma$ grows to $0.3$, whereas the proportional controller starts lower
+($0.93$) and loses only $0.017$.
+
+\subsection{Hypothesis tests}
+Table~\ref{tab:tests} reports the paired comparisons. For time-to-goal the
+proportional controller is significantly faster at every noise level
+($p<10^{-13}$, $|d|\in[3.3,4.1]$), confirming \textbf{H1}. For path
+efficiency the baseline is significantly better at every noise level
+($p<10^{-6}$), confirming the first part of \textbf{H2}; its degradation with
+noise ($-0.031$) is roughly twice that of the proportional law ($-0.017$),
+consistent with the second part. The Wilcoxon tests agree with all paired
+$t$-tests ($p<0.001$), so the conclusions do not depend on the normality
+assumption.
+
+\begin{table}[t]
+\caption{Paired comparisons (proportional $-$ baseline), $N=25$ pairs.}
+\label{tab:tests}
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Metric / $\sigma$ & Mean diff. & $t$ & $p$ (paired) & Cohen's $d$\\
+\midrule
+Time 0.0 & $-1.74$\,s & $-20.4$ & $<0.001$ & $-4.07$\\
+Time 0.1 & $-1.69$\,s & $-20.1$ & $<0.001$ & $-4.03$\\
+Time 0.3 & $-1.82$\,s & $-16.5$ & $<0.001$ & $-3.30$\\
+Effic.\ 0.0 & $-0.060$ & $-6.6$ & $<0.001$ & $-1.32$\\
+Effic.\ 0.1 & $-0.054$ & $-6.8$ & $<0.001$ & $-1.37$\\
+Effic.\ 0.3 & $-0.046$ & $-7.5$ & $<0.001$ & $-1.51$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Regarding \textbf{H3}, the mean paired advantage of the proportional
+controller changes only from $-1.74$\,s at $\sigma=0.0$ to $-1.82$\,s at
+$\sigma=0.3$; the Welch test on the paired differences yields $t=-0.62$,
+$p=0.54$. \emph{H3 is therefore not supported}: within the tested range, the
+advantage of continuous feedback is large but essentially constant with
+respect to actuation noise.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{trajectories.png}
+\caption{Qualitative comparison: trajectories towards the same goal (seed 3)
+for the proportional controller (top, blue) and the rotate-then-translate
+baseline (bottom, red) under increasing noise. Star: goal; dot: start.}
+\label{fig:traj}
+\end{figure}
+
+\subsection{Qualitative evaluation}
+Fig.~\ref{fig:traj} overlays the trajectories obtained for one representative
+goal. The proportional controller produces a single smooth arc whose shape is
+barely affected by noise. The baseline path is straighter --- which explains
+its higher efficiency --- but under noise it exhibits small kinks where the
+heading error crossed the $0.2$\,rad threshold and the robot stopped to
+re-align; each of those stops costs time without adding much path length,
+which explains why the baseline loses efficiency faster than it loses time.
 
 \section{Discussion and Limitations}
-% TODO
+The experiment confirms the textbook intuition with quantitative evidence:
+continuous proportional feedback dominates the decomposed strategy for
+time-optimal goal reaching (very large effect, $|d|>3$), while the decomposed
+strategy retains a genuine, statistically significant advantage in path
+efficiency. The practical implication is that the choice is a true trade-off
+only when path straightness matters more than time (e.g., narrow corridors);
+in all other cases the closed-loop law should be preferred. The magnitude of
+the gap is worth emphasizing: a $32\%$ reduction in time-to-goal, obtained by
+changing a few lines of controller code, is larger than the improvements
+typically reported for far more sophisticated interventions on the planning
+side of the navigation stack. Conversely, the efficiency cost of the
+closed-loop law is bounded ($\le 6\%$ longer paths on average) and shrinks as
+noise increases, so the baseline's only advantage erodes precisely in the
+conditions where robustness matters.
+
+The variability of the two controllers also differs in an interpretable way.
+The time-to-goal standard deviation of the baseline is roughly twice that of
+the proportional law at every noise level (Table~\ref{tab:summary}), because
+the number of stop-and-rotate phases --- each costing a discrete amount of
+time --- varies from trial to trial. In applications where predictable
+arrival times matter (e.g., fleet scheduling), this dispersion penalty is an
+additional argument for continuous feedback.
+
+The rejection of H3 is instructive. We expected stop-and-rotate phases to
+multiply under noise, widening the time gap. Instead, because the injected
+noise is zero-mean and white, its net effect over a trial largely averages
+out, and the baseline's threshold mechanism absorbs moderate heading
+disturbances without triggering extra rotations. A noise model with bias
+(e.g., asymmetric wheel slip) or a narrower alignment threshold would likely
+produce the hypothesized interaction; this is a concrete direction for future
+work. As the methodology literature emphasizes, an experiment whose outcome
+was certain in advance would have been pointless --- negative results are
+results.
+
+\textbf{Threats to validity.} Internal validity is protected by the paired
+design, the seeded randomization, and the strict control of all remaining
+variables. External validity is limited by the simulation assumptions: the
+kinematic model ignores dynamics and slip; localization is perfect, so the
+comparison captures actuation noise only; the arena is obstacle-free; the
+gains of both controllers are fixed rather than optimized per condition,
+and the tuning inevitably influences the absolute numbers; and the success
+metric saturated (100\%), so robustness differences beyond the tested noise
+range remain unobserved. Finally, the noise range itself ($\sigma\le0.3$) was
+chosen to represent moderate actuation imperfection; harsher or biased noise
+may change the picture.
 
 \section{Conclusion}
-% TODO
+This paper presented a controlled, fully reproducible comparison between a
+proportional closed-loop go-to-goal controller and a rotate-then-translate
+baseline for a unicycle robot under actuation noise, implemented as a ROS~2
+node driven by a Jupyter notebook. The closed-loop law is about 32\% faster
+at every noise level with a very large effect size (H1 confirmed); the
+baseline yields straighter paths but loses efficiency about twice as fast as
+noise grows (H2 confirmed); and the time advantage of the closed-loop law
+does not increase with noise in the tested range (H3 rejected). Future work
+includes biased and colored noise models, sensor (localization) noise,
+obstacle-cluttered environments, and per-condition gain tuning.
+
+\begin{thebibliography}{00}
+\bibitem{aicardi1995closed} M. Aicardi, G. Casalino, A. Bicchi, and
+A. Balestrino, ``Closed loop steering of unicycle like vehicles via Lyapunov
+techniques,'' \emph{IEEE Robotics \& Automation Magazine}, vol. 2, no. 1,
+pp. 27--35, 1995.
+\bibitem{siegwart2011introduction} R. Siegwart, I. R. Nourbakhsh, and
+D. Scaramuzza, \emph{Introduction to Autonomous Mobile Robots}, 2nd ed.
+Cambridge, MA: MIT Press, 2011.
+\bibitem{brockett1983asymptotic} R. W. Brockett, ``Asymptotic stability and
+feedback stabilization,'' in \emph{Differential Geometric Control Theory},
+Boston, MA: Birkh\"auser, 1983, pp. 181--191.
+\bibitem{astolfi1999exponential} A. Astolfi, ``Exponential stabilization of a
+wheeled mobile robot via discontinuous control,'' \emph{ASME Journal of
+Dynamic Systems, Measurement, and Control}, vol. 121, no. 1, pp. 121--126,
+1999.
+\bibitem{kanayama1990stable} Y. Kanayama, Y. Kimura, F. Miyazaki, and
+T. Noguchi, ``A stable tracking control method for an autonomous mobile
+robot,'' in \emph{Proc. IEEE Int. Conf. on Robotics and Automation (ICRA)},
+1990, pp. 384--389.
+\bibitem{park2011smooth} J. J. Park and B. Kuipers, ``A smooth control law for
+graceful motion of differential wheeled mobile robots in 2D environment,'' in
+\emph{Proc. IEEE Int. Conf. on Robotics and Automation (ICRA)}, 2011,
+pp. 4896--4902.
+\bibitem{fox1997dynamic} D. Fox, W. Burgard, and S. Thrun, ``The dynamic
+window approach to collision avoidance,'' \emph{IEEE Robotics \& Automation
+Magazine}, vol. 4, no. 1, pp. 23--33, 1997.
+\bibitem{macenski2020marathon} S. Macenski, F. Mart\'in, R. White, and
+J. Ginés Clavero, ``The Marathon 2: A navigation system,'' in \emph{Proc.
+IEEE/RSJ Int. Conf. on Intelligent Robots and Systems (IROS)}, 2020,
+pp. 2718--2725.
+\bibitem{bonsignorio2015toward} F. Bonsignorio and A. P. del Pobil, ``Toward
+replicable and measurable robotics research,'' \emph{IEEE Robotics \&
+Automation Magazine}, vol. 22, no. 3, pp. 32--35, 2015.
+\bibitem{macenski2022ros2} S. Macenski, T. Foote, B. Gerkey, C. Lalancette,
+and W. Woodall, ``Robot Operating System 2: Design, architecture, and uses in
+the wild,'' \emph{Science Robotics}, vol. 7, no. 66, 2022.
+\bibitem{kluyver2016jupyter} T. Kluyver \emph{et al.}, ``Jupyter Notebooks --
+a publishing format for reproducible computational workflows,'' in
+\emph{Positioning and Power in Academic Publishing}, IOS Press, 2016,
+pp. 87--90.
+\end{thebibliography}
 
 \end{document}
